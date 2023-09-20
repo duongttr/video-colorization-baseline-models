@@ -153,7 +153,7 @@ def main_testonly_parallel(args):
             ref = transform(ref).unsqueeze(0).to(device)
             #print(ref.shape)
         else:
-            ref = Clip[0:1,:,:,:]
+            ref = Clip[0:1,:,:,:].to(device)
         tail_flag = 0
         for j in range(0,len(Clip),test_num_frames-1):
             clip = Clip[j:j+test_num_frames-1,:,:,:].to(device)
