@@ -94,7 +94,7 @@ def get_args_parser():
 def calculate_metrics_for_each_frame(gt, predicted):
     psnr = batch_psnr(predicted, gt)
     ssim = calc_ssim(predicted, gt)
-    lpips = lpips_calc.compare_lpips(predicted, gt)
+    lpips = lpips_calc.compare_lpips(predicted, gt).item()
     fid = fid_calc.score(predicted, gt)
     
     return {"psnr":psnr, "ssim":ssim, "lpips":lpips, "fid":fid}

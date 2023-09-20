@@ -83,7 +83,7 @@ def calc_ssim(img1, img2):  #  images  h w c
     #img1 = cv2.cvtColor(img1,cv2.COLOR_RGB2GRAY)
     #img2 = cv2.cvtColor(img2,cv2.COLOR_RGB2GRAY)
     #ssim_score = ssim(img1, img2, data_range=255.)
-    ssim = structural_similarity(img1, img2, multichannel=True,data_range=255.)
+    ssim = structural_similarity(img1, img2, channel_axis=2,data_range=255.)
     return ssim
 
 def batch_psnr(img, imgclean):
