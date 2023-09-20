@@ -134,7 +134,7 @@ def main_testonly_parallel(args):
 
     #-------------------------------------------------------------#
     test_num_frames = args.num_frames
-    subdirs = sorted(os.listdir(args.test_path))[:1] ### TESTING
+    subdirs = sorted(os.listdir(args.test_path))
     if args.ref_path:
         reference_imgs = sorted(glob.glob(os.path.join(args.ref_path,"*.JPEG"))+glob.glob(os.path.join(args.ref_path,"*.png")))
     
@@ -149,7 +149,7 @@ def main_testonly_parallel(args):
         #imgs = sorted()
         imgs = glob.glob(os.path.join(path, '*.png'))+glob.glob(os.path.join(path, '*.jpg'))
         imgs.sort(key=lambda f: int("".join(filter(str.isdigit, f) or -1)))
-        imgs = imgs[:5] # TESTING
+        imgs = imgs
         #print(imgs)
         Clip = []
         for i in range(0,len(imgs),1):
