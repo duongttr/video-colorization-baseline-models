@@ -86,27 +86,13 @@ def calc_ssim(img1, img2):  #  images  h w c
     return ssim
 
 def batch_psnr(img, imgclean, data_range):
-	r"""
-	Computes the PSNR along the batch dimension (not pixel-wise)
-
-	Args:
-		img: a `torch.Tensor` containing the restored image
-		imclean: a `torch.Tensor` containing the reference image
-		data_range: The data range of the input image (distance between
-			minimum and maximum possible values). By default, this is estimated
-			from the image data-type.
-	"""
-	if not ( isinstance(img, np.ndarray) and isinstance(imgclean, np.ndarray)) :
-	    img = np.array(img).astype(np.float32)
-	    imgclean = np.array(imgclean).astype(np.float32)
-	psnr = 0
-	#print(img.shape , imgclean.shape)
-	psnr += peak_signal_noise_ratio(imgclean, img, data_range=data_range)
-	return psnr
-
-
-
-
+    if not ( isinstance(img, np.ndarray) and isinstance(imgclean, np.ndarray)) :
+        img = np.array(img).astype(np.float32)
+        imgclean = np.array(imgclean).astype(np.float32)
+    
+    psnr = 0
+    psnr += peak_signal_noise_ratio(imgclean, img, data_range=data_range)
+    return psnr
 
 def to_np(x):
     return x.data.cpu().numpy()
