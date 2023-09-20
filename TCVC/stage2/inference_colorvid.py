@@ -89,7 +89,9 @@ def get_args_parser():
     args.scale_factor     scale imgs to accelerate inference
     args.mode             linear,parallel for decoder ; testonly when not do testing ; note that interlayers closed  in linear mode; nowe when do not caculate warp error.
     '''
-
+def calculate_metrics(gt, predicted):
+    print("gt shape:",gt.shape)
+    print("predicted shape:",predicted.shape)
 
 @torch.no_grad()
 def main_testonly_parallel(args):
@@ -136,9 +138,7 @@ def main_testonly_parallel(args):
         path = os.path.join(args.test_path, subdir)
         # print("precessing:",path)
         #imgs = sorted()
-        print(path)
         imgs = glob.glob(os.path.join(path, '*.png'))+glob.glob(os.path.join(path, '*.jpg'))
-        print(imgs)
         imgs.sort(key=lambda f: int("".join(filter(str.isdigit, f) or -1)))
         #print(imgs)
         Clip = []
@@ -157,7 +157,7 @@ def main_testonly_parallel(args):
         tail_flag = 0
         for j in range(0,len(Clip),test_num_frames-1):
             clip = Clip[j:j+test_num_frames-1,:,:,:].to(device)
-            #GT = GGT[j:j+test_num_frames-1,:,:,:]
+            GT = Clip[j:j+test_num_frames-1,:,:,:].to(device) # ground truth
             clip_large = torch.cat([ref,clip],dim=0)
             clip = F.interpolate(clip_large,size = args.scale_size,mode="bilinear")
             corr_num_frames = clip.shape[0]
@@ -197,7 +197,8 @@ def main_testonly_parallel(args):
             for i in range(corr_num_frames-1):
                 clip_l_corr = clip_l_large[i+1:i+2,:,:,:]
                 out_ab_corr = out_ab[i+1:i+2,:,:,:]
-                outputs_rgb = batch_lab2rgb_transpose_mc(clip_l_corr,out_ab_corr)
+                outputs_rgb = batch_lab2rgb_transpose_mc(clip_l_corr,out_ab_corr) # predicted output
+                calculate_metrics(GT, outputs_rgb)
                 output_path = os.path.join(args.test_output_path,subdir)
                 mkdir_if_not(output_path) 
                 save_frames(outputs_rgb, output_path, image_name = "f%03d.png" % (j+i+1))
