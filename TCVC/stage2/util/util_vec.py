@@ -12,7 +12,7 @@ from skimage import color, io
 from torch.autograd import Variable
 from skimage.metrics import peak_signal_noise_ratio
 from skimage.metrics import structural_similarity
-#import lpips
+import lpips
 cv2.setNumThreads(0)
 
 # l: [-50,50]
@@ -50,12 +50,13 @@ def resnet_features(resnet,x):
 def compare_lpips(img_fake,img_real,data_range):
     if not ( isinstance(img_fake, np.ndarray) and isinstance(img_real, np.ndarray)) :
         img_fake = np.array(img_fake).astype(np.float32).transpose((2, 0, 1))
-        img_real = np.array(img_real).astype(np.float32).transpose((2, 0, 1)) 
+        img_real = np.array(img_real).astype(np.float32).transpose((2, 0, 1))
     img_fake = torch.from_numpy(img_fake)
     img_real = torch.from_numpy(img_real)
     img_fake /= data_range
     img_real /= data_range
     loss_fn = lpips.LPIPS(net='vgg', spatial=True)  # Can set net = 'squeeze' or 'vgg'or 'alex'
+    dist_ = []
     for i in range(len(img_fake)):
         dist = loss_fn.forward(img_fake[i],img_real[i])
         dist_.append(dist.mean().item())
@@ -85,13 +86,13 @@ def calc_ssim(img1, img2):  #  images  h w c
     ssim = structural_similarity(img1, img2, multichannel=True,data_range=255.)
     return ssim
 
-def batch_psnr(img, imgclean, data_range):
+def batch_psnr(img, imgclean):
     if not ( isinstance(img, np.ndarray) and isinstance(imgclean, np.ndarray)) :
         img = np.array(img).astype(np.float32)
         imgclean = np.array(imgclean).astype(np.float32)
     
     psnr = 0
-    psnr += peak_signal_noise_ratio(imgclean, img, data_range=data_range)
+    psnr += peak_signal_noise_ratio(imgclean, img, data_range=255.)
     return psnr
 
 def to_np(x):

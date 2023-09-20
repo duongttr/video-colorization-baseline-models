@@ -61,7 +61,7 @@ def get_args_parser():
                         help="Number of attention heads inside the transformer's attentions")
     parser.add_argument('--pre_norm', action='store_true')
 
-    parser.add_argument('--test_path', type=str,default='/Users/jaydentran1909/baseline-video-colorization/datasets/davis')  #/dataset/videvo/test/imgs /dataset/DAVIS/Test/1/imgs
+    parser.add_argument('--test_path', type=str,default='/Users/jaydentran1909/baseline-video-colorization/sample-datasets/davis')  #/dataset/videvo/test/imgs /dataset/DAVIS/Test/1/imgs
 
     parser.add_argument('--test_output_path', type=str,default='./stage2_test_results') 
     parser.add_argument('--device', default='cuda',
@@ -89,9 +89,15 @@ def get_args_parser():
     args.scale_factor     scale imgs to accelerate inference
     args.mode             linear,parallel for decoder ; testonly when not do testing ; note that interlayers closed  in linear mode; nowe when do not caculate warp error.
     '''
-def calculate_metrics(gt, predicted):
-    print("gt shape:",gt.shape)
-    print("predicted shape:",predicted.shape)
+
+
+def calculate_metrics_for_each_frame(gt, predicted):
+    psnr = batch_psnr(predicted, gt)
+    ssim = calc_ssim(predicted, gt)
+    lpips = lpips_calc.compare_lpips(predicted, gt)
+    fid = fid_calc.score(predicted, gt)
+    
+    return {"psnr":psnr, "ssim":ssim, "lpips":lpips, "fid":fid}
 
 @torch.no_grad()
 def main_testonly_parallel(args):
@@ -128,9 +134,12 @@ def main_testonly_parallel(args):
 
     #-------------------------------------------------------------#
     test_num_frames = args.num_frames
-    subdirs = sorted(os.listdir(args.test_path))
+    subdirs = sorted(os.listdir(args.test_path))[:1] ### TESTING
     if args.ref_path:
         reference_imgs = sorted(glob.glob(os.path.join(args.ref_path,"*.JPEG"))+glob.glob(os.path.join(args.ref_path,"*.png")))
+    
+    metrics_log = open('metrics_log.csv', 'w')
+    metrics_log.write('video_name,frame_number,psnr,ssim,lpips,fid\n')
     for index,subdir in enumerate(tqdm(subdirs)):
         if device.type == 'cuda':
             torch.cuda.empty_cache()
@@ -140,13 +149,14 @@ def main_testonly_parallel(args):
         #imgs = sorted()
         imgs = glob.glob(os.path.join(path, '*.png'))+glob.glob(os.path.join(path, '*.jpg'))
         imgs.sort(key=lambda f: int("".join(filter(str.isdigit, f) or -1)))
+        imgs = imgs[:5] # TESTING
         #print(imgs)
         Clip = []
         for i in range(0,len(imgs),1):
             img = Image.open(imgs[i]).convert('RGB')
             Clip.append(transform(img).unsqueeze(0))
         Clip = torch.cat(Clip,dim=0)
-        Clip.requires_grad =False
+        Clip.requires_grad = False
         if args.ref_path:
             ref = reference_imgs[index]
             ref = Image.open(ref).convert('RGB')
@@ -155,9 +165,10 @@ def main_testonly_parallel(args):
         else:
             ref = Clip[0:1,:,:,:].to(device)
         tail_flag = 0
+        
         for j in range(0,len(Clip),test_num_frames-1):
             clip = Clip[j:j+test_num_frames-1,:,:,:].to(device)
-            GT = Clip[j:j+test_num_frames-1,:,:,:].to(device) # ground truth
+            # GT = Clip[j:j+test_num_frames-1,:,:,:].to(device) # ground truth
             clip_large = torch.cat([ref,clip],dim=0)
             clip = F.interpolate(clip_large,size = args.scale_size,mode="bilinear")
             corr_num_frames = clip.shape[0]
@@ -187,6 +198,7 @@ def main_testonly_parallel(args):
             out_ab = out.squeeze(0)                             # n c h w
             #clip_l = clip_l.data.cpu()
             clip_l_large = clip_large[:,0:1,:,:].data.cpu()
+            clip_ab_large = clip_large[:,1:3,:,:].data.cpu()
             out_ab=F.interpolate(out_ab,size = args.img_size,mode="bilinear").data.cpu()
             #print("evaluation:",clip_l.shape,out_ab.shape)
             if tail_flag:
@@ -196,12 +208,21 @@ def main_testonly_parallel(args):
                 tail_flag=0
             for i in range(corr_num_frames-1):
                 clip_l_corr = clip_l_large[i+1:i+2,:,:,:]
+                clip_ab_corr = clip_ab_large[i+1:i+2,:,:,:]
                 out_ab_corr = out_ab[i+1:i+2,:,:,:]
                 outputs_rgb = batch_lab2rgb_transpose_mc(clip_l_corr,out_ab_corr) # predicted output
-                calculate_metrics(GT, outputs_rgb)
+                gt_rgb = batch_lab2rgb_transpose_mc(clip_l_corr, clip_ab_corr) # ground truth
+                
+                metric_results = calculate_metrics_for_each_frame(gt_rgb, outputs_rgb)
+                print(metric_results)
+                #metrics_log.write(','.join(list(metric_results.values())))
+                metrics_log.write(f'{subdir},{j+i+1},{metric_results["psnr"]},{metric_results["ssim"]},{metric_results["lpips"]},{metric_results["fid"]}\n')
                 output_path = os.path.join(args.test_output_path,subdir)
-                mkdir_if_not(output_path) 
-                save_frames(outputs_rgb, output_path, image_name = "f%03d.png" % (j+i+1))
+                mkdir_if_not(output_path)
+                save_frames(gt_rgb, output_path, image_name = "gt-%03d.png" % (j+i+1))
+                save_frames(outputs_rgb, output_path, image_name = "pd-%03d.png" % (j+i+1))
+    
+    metrics_log.close()
     print("done!")
    
 
@@ -222,6 +243,10 @@ if __name__ == '__main__':
     transform3 = T.Compose(
         [T.CenterPad(args.img_size), T.ToTensor()]
     )
+    
+    lpips_calc = LPIP_utils(device=args.device)
+    fid_calc = FID_utils(device=args.device)
+    
     print("start stage2!")
     main_testonly_parallel(args)
     print("done stage2!")
