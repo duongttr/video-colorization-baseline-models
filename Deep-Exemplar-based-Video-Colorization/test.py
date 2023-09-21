@@ -117,8 +117,8 @@ def colorize_video(opt, input_path, reference_file, output_path, nonlocal_net, c
             IA_predict_rgb = batch_lab2rgb_transpose_mc(curr_bs_l[:32], curr_predict[:32, ...])
 
         # save the frames
-        save_frames(IA_lab, output_path + "-gt", index)
-        save_frames(IA_predict_rgb, output_path + "-pred", index)
+        save_frames(IA_lab, os.path.join(output_path, 'gt'), index)
+        save_frames(IA_predict_rgb, os.path.join(output_path, 'pred'), index)
 
     # output video
     # video_name = "video.avi"
@@ -181,7 +181,7 @@ if __name__ == "__main__":
             print("error when colorizing the video " + ref_name)
             print(error)
 
-    video_name = "video.avi"
-    clip_output_path = os.path.join(opt.output_path, clip_name)
-    mkdir_if_not(clip_output_path)
-    folder2vid(image_folder=opt.clip_path, output_dir=clip_output_path, filename=video_name)
+    # video_name = "video.avi"
+    # clip_output_path = os.path.join(opt.output_path, clip_name)
+    # mkdir_if_not(clip_output_path)
+    # folder2vid(image_folder=opt.clip_path, output_dir=clip_output_path, filename=video_name)
