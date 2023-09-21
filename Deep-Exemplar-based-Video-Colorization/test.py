@@ -117,8 +117,8 @@ def colorize_video(opt, input_path, reference_file, output_path, nonlocal_net, c
             IA_predict_rgb = batch_lab2rgb_transpose_mc(curr_bs_l[:32], curr_predict[:32, ...])
 
         # save the frames
-        save_frames(IA_lab.cpu(), os.path.join(output_path, 'gt'), index)
-        save_frames(IA_predict_rgb.cpu(), os.path.join(output_path, 'pred'), index)
+        save_frames(IA_lab.cpu().numpy(), os.path.join(output_path, 'gt'), index)
+        save_frames(IA_predict_rgb, os.path.join(output_path, 'pred'), index)
 
     # output video
     # video_name = "video.avi"
