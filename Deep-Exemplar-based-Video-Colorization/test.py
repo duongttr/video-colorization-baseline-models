@@ -118,6 +118,10 @@ def colorize_video(opt, input_path, reference_file, output_path, nonlocal_net, c
 
         
         # save the frames
+        if not os.path.exists(os.path.join(output_path, 'gt')):
+            os.makedirs(os.path.join(output_path, 'gt'))
+        if not os.path.exists(os.path.join(output_path, 'pred')):
+            os.makedirs(os.path.join(output_path, 'pred'))
         save_frames(batch_lab2rgb_transpose_mc(IA_l[:32], IA_ab[:32]), os.path.join(output_path, 'gt'), index)
         save_frames(IA_predict_rgb, os.path.join(output_path, 'pred'), index)
 
